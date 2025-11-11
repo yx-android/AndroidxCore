@@ -62,11 +62,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- 双重入口服务 -->
-        <service
-            android:name=".FloatingEntryService"
-            android:exported="false"
-            tools:targetApi="o" />
     </application>
 
 </manifest>

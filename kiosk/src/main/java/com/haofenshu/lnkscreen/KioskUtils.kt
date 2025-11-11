@@ -5,7 +5,6 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
@@ -492,37 +491,6 @@ object KioskUtils {
     }
 
     /**
-     * 检查网络，如无网络则自动跳转到设置页面
-     */
-    fun checkNetworkAndAutoJump(context: Context): Boolean {
-        return if (!isNetworkAvailable(context)) {
-            Log.d(TAG, "检测到无网络，自动跳转到设置页面")
-            openSystemSettingsManager(context)
-        } else {
-            Log.d(TAG, "网络正常，无需跳转")
-            false
-        }
-    }
-
-    // 自动跳转相关功能已移除（过期逻辑）
-
-    /**
-     * 注册网络状态监听器（建议在Application或长期运行的Service中调用）
-     */
-    fun registerNetworkListener(context: Context): Boolean {
-        return try {
-            val receiver = NetworkStateReceiver()
-            val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
-            context.registerReceiver(receiver, filter)
-            Log.d(TAG, "网络状态监听器已注册")
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "注册网络状态监听器失败", e)
-            false
-        }
-    }
-
-    /**
      * 获取网络状态详细信息
      */
     fun getNetworkStatusInfo(context: Context): String {
@@ -563,36 +531,6 @@ object KioskUtils {
         }
     }
 
-    // ===== 双重入口服务管理 =====
-
-    /**
-     * 启动双重入口服务（悬浮窗 + 通知）
-     */
-    fun startFloatingEntryService(context: Context): Boolean {
-        return try {
-            FloatingEntryService.Companion.start(context)
-            Log.d(TAG, "双重入口服务已启动")
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "启动双重入口服务失败", e)
-            false
-        }
-    }
-
-    /**
-     * 停止双重入口服务
-     */
-    fun stopFloatingEntryService(context: Context): Boolean {
-        return try {
-            FloatingEntryService.Companion.stop(context)
-            Log.d(TAG, "双重入口服务已停止")
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "停止双重入口服务失败", e)
-            false
-        }
-    }
-
     /**
      * 检查悬浮窗权限
      */
@@ -602,44 +540,6 @@ object KioskUtils {
         } else {
             true
         }
-    }
-
-    /**
-     * 请求悬浮窗权限
-     */
-    fun requestOverlayPermission(context: Context): Boolean {
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
-                intent.data = Uri.parse("package:${context.packageName}")
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
-                Log.d(TAG, "已打开悬浮窗权限设置页面")
-                true
-            } else {
-                Log.d(TAG, "Android 6.0以下无需申请悬浮窗权限")
-                true
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "请求悬浮窗权限失败", e)
-            false
-        }
-    }
-
-    /**
-     * 显示红点提醒
-     */
-    fun showRedDotIndicator(context: Context) {
-        // 这里可以通过广播或其他方式通知服务显示红点
-        Log.d(TAG, "请求显示红点提醒")
-    }
-
-    /**
-     * 隐藏红点提醒
-     */
-    fun hideRedDotIndicator(context: Context) {
-        // 这里可以通过广播或其他方式通知服务隐藏红点
-        Log.d(TAG, "请求隐藏红点提醒")
     }
 
     /**
@@ -654,96 +554,6 @@ object KioskUtils {
         return sb.toString()
     }
 
-    /**
-     * 调试悬浮窗显示问题
-     */
-    fun debugFloatingWindow(context: Context): String {
-        val sb = StringBuilder()
-        sb.append("悬浮窗调试信息:\n")
-
-        // 检查权限
-        val hasPermission = hasOverlayPermission(context)
-        sb.append("- SYSTEM_ALERT_WINDOW权限: ${if (hasPermission) "已授权" else "未授权"}\n")
-
-        // 检查 API 版本
-        sb.append("- Android版本: ${Build.VERSION.SDK_INT} (${Build.VERSION.RELEASE})\n")
-
-        // 检查包名
-        sb.append("- 应用包名: ${context.packageName}\n")
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !hasPermission) {
-            sb.append("- 权限状态: 需要在设置中手动授权悬浮窗权限\n")
-            sb.append("- 授权路径: 设置 > 应用 > ${context.packageName} > 权限 > 在其他应用上层显示\n")
-        }
-
-        return sb.toString()
-    }
-
-    /**
-     * 手动测试悬浮窗显示
-     */
-    fun testFloatingWindow(context: Context): Boolean {
-        return try {
-            Log.d(TAG, "开始手动测试悬浮窗")
-
-            // 初始化管理器
-            FloatingWindowManager.initialize(context)
-
-            // 尝试显示悬浮窗
-            val success = FloatingWindowManager.showFloatingButton {
-                Log.d(TAG, "测试悬浮窗被点击")
-            }
-
-            Log.d(TAG, "悬浮窗测试结果: $success")
-            success
-        } catch (e: Exception) {
-            Log.e(TAG, "悬浮窗测试失败", e)
-            false
-        }
-    }
-
-    /**
-     * 一键启用完整的入口系统
-     */
-    fun enableCompleteEntrySystem(context: Context): Boolean {
-        return try {
-            // 1. 网络自动跳转功能已移除
-
-            // 2. 启动双重入口服务
-            val serviceStarted = startFloatingEntryService(context)
-
-            // 3. 检查悬浮窗权限，如果没有则引导用户授权
-            if (!hasOverlayPermission(context)) {
-                Log.w(TAG, "悬浮窗权限未授权，请手动授权以获得最佳体验")
-                requestOverlayPermission(context)
-            }
-
-            Log.d(TAG, "完整入口系统启用状态: 服务=${if (serviceStarted) "成功" else "失败"}, 权限=${hasOverlayPermission(context)}")
-            serviceStarted
-        } catch (e: Exception) {
-            Log.e(TAG, "启用完整入口系统失败", e)
-            false
-        }
-    }
-
-    /**
-     * 禁用完整的入口系统
-     */
-    fun disableCompleteEntrySystem(context: Context): Boolean {
-        return try {
-            // 1. 网络自动跳转功能已移除
-
-            // 2. 停止双重入口服务
-            val serviceStopped = stopFloatingEntryService(context)
-
-            Log.d(TAG, "完整入口系统已禁用")
-            serviceStopped
-        } catch (e: Exception) {
-            Log.e(TAG, "禁用完整入口系统失败", e)
-            false
-        }
-    }
-
     // ===== 页面内悬浮按钮管理 =====
 
     /**
@@ -751,25 +561,8 @@ object KioskUtils {
      */
     fun updateInPageFloatingNetworkStatus(context: Context) {
         val hasNetwork = isNetworkAvailable(context)
-        InPageFloatingManager.updateNetworkStatus(hasNetwork)
         Log.d(TAG, "已更新页面内悬浮按钮网络状态: ${if (hasNetwork) "正常" else "异常"}")
     }
-
-    /**
-     * 获取页面内悬浮按钮状态
-     */
-    fun getInPageFloatingStatus(): String {
-        return InPageFloatingManager.getStatusInfo()
-    }
-
-    /**
-     * 清理所有页面内悬浮按钮
-     */
-    fun clearAllInPageFloating() {
-        InPageFloatingManager.clearAll()
-        Log.d(TAG, "已清理所有页面内悬浮按钮")
-    }
-
     /**
      * 启用降级入口系统（仅页面内悬浮按钮，不自动跳转）
      */
@@ -799,7 +592,6 @@ object KioskUtils {
         sb.append("\n=== 悬浮窗服务 ===\n")
         sb.append(getFloatingEntryStatus(context))
         sb.append("\n=== 页面内悬浮按钮 ===\n")
-        sb.append(getInPageFloatingStatus())
         return sb.toString()
     }
 
