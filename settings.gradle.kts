@@ -41,3 +41,4 @@ include(":kiosk")
 project(":kiosk").buildFileName = "build.gradle.kts"
 include(":ByWebView")
 project(":ByWebView").buildFileName = "build.gradle.kts"
+include(":appmanager")

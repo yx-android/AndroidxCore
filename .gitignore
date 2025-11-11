@@ -1,23 +1,85 @@
-*.iml
-.gradle
+# Android项目忽略文件
+
+# Gradle 相关
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# 本地配置文件
 /local.properties
-.idea
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+*.properties
+!gradle.properties
+
+# IDE 相关
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+
+# 系统文件
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
+._*
+Thumbs.db
+ehthumbs.db
+
+# 编译生成文件
+*.apk
+*.aab
+*.dex
+*.class
+*.hprof
+
+# 安全相关（密钥等）
+*.jks
+*.keystore
+!debug.keystore
+
+# Android NDK/C++
+.externalNativeBuild/
+.cxx/
+obj/
+
+# Lint/测试/覆盖率
+lint/
+coverage/
+/test-results/
+/androidTest-results/
+
+# Kotlin
+.kotlin/
+.mockk/
+
+# 工具生成文件
 mapping.txt
 seeds.txt
 unused.txt
 configuration.txt
-.kotlin
+captures/
+
+# 临时/日志文件
+*.tmp
+*.bak
+*.swp
+*.log
+*.pid
+
+# 模块构建文件（已包含 **/build/，不需要单独列出每个模块）
+**/build/
+
+# 注释处理器生成
+**/generated/
+
+# 数据库
+*.db
+*.db-shm
+*.db-wal
+
+# 第三方工具
 .stfolder/
-.vscode/
+.stignore
+freeline/
+**/fastlane/
+
+# 导航组件生成的文件
+**/navigation/
