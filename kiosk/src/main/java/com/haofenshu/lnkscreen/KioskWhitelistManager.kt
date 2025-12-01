@@ -27,6 +27,8 @@ class KioskWhitelistManager private constructor(private val context: Context) {
             // 主应用
             "com.jingzhunxue.aicoach",
             "com.jingzhunxue.tifenben",
+            "com.yunxiao.appupdate",
+            "com.jingzhunxue.tifenben:keepalive",
             // AI教练主应用
             context.packageName,                       // 当前kiosk应用
 
@@ -442,7 +444,7 @@ class KioskWhitelistManager private constructor(private val context: Context) {
         val appName: String,
         val isSystemApp: Boolean,
         val isWhitelisted: Boolean,
-        val icon: android.graphics.drawable.Drawable
+        val icon: android.graphics.drawable.Drawable,
     )
 
     fun getWhitelistStats(): String {
