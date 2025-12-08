@@ -24,6 +24,10 @@ class KioskWhitelistManager private constructor(private val context: Context) {
 
     fun getSystemWhitelistPackages(): Set<String> {
         return setOf(
+            "com.tencent.mm",
+            "com.tencent.wework",
+            "com.quark.browser",
+            "com.baidu.netdisk",
             // 主应用
             "com.jingzhunxue.aicoach",
             "com.jingzhunxue.tifenben",
@@ -442,7 +446,7 @@ class KioskWhitelistManager private constructor(private val context: Context) {
         val appName: String,
         val isSystemApp: Boolean,
         val isWhitelisted: Boolean,
-        val icon: android.graphics.drawable.Drawable
+        val icon: android.graphics.drawable.Drawable,
     )
 
     fun getWhitelistStats(): String {
