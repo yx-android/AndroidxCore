@@ -1,5 +1,6 @@
 package com.haofenshu.lnkscreen
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 
@@ -10,6 +11,7 @@ class KioskWhitelistManager private constructor(private val context: Context) {
         private const val PREF_NAME = "kiosk_whitelist"
         private const val KEY_CUSTOM_WHITELIST = "custom_whitelist"
 
+        @SuppressLint("StaticFieldLeak")
         @Volatile
         private var INSTANCE: KioskWhitelistManager? = null
 
@@ -104,6 +106,9 @@ class KioskWhitelistManager private constructor(private val context: Context) {
 
     @Synchronized
     fun addToWhitelist(packageName: String): Boolean {
+        // 如果包名已在白名单中（系统或自定义），则无需重复添加
+        if (isInWhitelist(packageName)) return false
+
         return try {
             val currentList = cachedCustomWhitelist.toMutableSet()
             if (currentList.add(packageName)) {
@@ -111,7 +116,7 @@ class KioskWhitelistManager private constructor(private val context: Context) {
                     .putStringSet(KEY_CUSTOM_WHITELIST, currentList)
                     .apply()
                 refreshCache()
-                Log.d(TAG, "已添加到白名单: $packageName")
+                Log.d(TAG, "已添加到自定义白名单: $packageName")
                 true
             } else false
         } catch (e: Exception) {
@@ -124,12 +129,13 @@ class KioskWhitelistManager private constructor(private val context: Context) {
     fun removeFromWhitelist(packageName: String): Boolean {
         return try {
             val currentList = cachedCustomWhitelist.toMutableSet()
+            // remove() 只有在元素确实存在于自定义名单中时才会返回 true
             if (currentList.remove(packageName)) {
                 context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit()
                     .putStringSet(KEY_CUSTOM_WHITELIST, currentList)
                     .apply()
                 refreshCache()
-                Log.d(TAG, "已从白名单移除: $packageName")
+                Log.d(TAG, "已从自定义白名单移除: $packageName")
                 true
             } else false
         } catch (e: Exception) {
@@ -139,7 +145,6 @@ class KioskWhitelistManager private constructor(private val context: Context) {
     }
 
     fun isInWhitelist(packageName: String): Boolean = cachedFullWhitelist.contains(packageName)
-
 
     fun getWhitelistAppsForKiosk(): Array<String> {
         val pm = context.packageManager
