@@ -28,6 +28,14 @@ fun Application.initKioskMode() {
     }
 }
 
+fun Application.addAppsToWhitelist(packageNames: Collection<String>) {
+    KioskUtils.addAppsToWhitelist(this, packageNames)
+}
+
+fun Application.removeAppsFromWhitelist(packageNames: Collection<String>) {
+    KioskUtils.removeAppsFromWhitelist(this, packageNames)
+}
+
 /**
  * 启动锁定任务模式（在Activity中调用）
  * 这个方法供Activity调用来实际启动LockTask

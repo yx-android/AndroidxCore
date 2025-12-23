@@ -78,36 +78,44 @@ object KioskUtils {
     }
 
     fun addAppToWhitelist(context: Context, packageName: String): Boolean {
+        return addAppsToWhitelist(context, listOf(packageName))
+    }
+
+    fun addAppsToWhitelist(context: Context, packageNames: Collection<String>): Boolean {
         return try {
-            val whitelistManager = KioskWhitelistManager.Companion.getInstance(context)
-            val result = whitelistManager.addToWhitelist(packageName)
+            val whitelistManager = KioskWhitelistManager.getInstance(context)
+            val result = whitelistManager.addToWhitelist(packageNames)
             if (result && isKioskModeActive(context)) {
                 refreshLockTaskPackages(context)
             }
             result
         } catch (e: Exception) {
-            Log.e(TAG, "添加白名单失败", e)
+            Log.e(TAG, "批量添加白名单失败", e)
             false
         }
     }
 
     fun removeAppFromWhitelist(context: Context, packageName: String): Boolean {
+        return removeAppsFromWhitelist(context, listOf(packageName))
+    }
+
+    fun removeAppsFromWhitelist(context: Context, packageNames: Collection<String>): Boolean {
         return try {
-            val whitelistManager = KioskWhitelistManager.Companion.getInstance(context)
-            val result = whitelistManager.removeFromWhitelist(packageName)
+            val whitelistManager = KioskWhitelistManager.getInstance(context)
+            val result = whitelistManager.removeFromWhitelist(packageNames)
             if (result && isKioskModeActive(context)) {
                 refreshLockTaskPackages(context)
             }
             result
         } catch (e: Exception) {
-            Log.e(TAG, "移除白名单失败", e)
+            Log.e(TAG, "批量移除白名单失败", e)
             false
         }
     }
 
     fun isAppInWhitelist(context: Context, packageName: String): Boolean {
         return try {
-            KioskWhitelistManager.Companion.getInstance(context).isInWhitelist(packageName)
+            KioskWhitelistManager.getInstance(context).isInWhitelist(packageName)
         } catch (e: Exception) {
             false
         }
@@ -115,7 +123,7 @@ object KioskUtils {
 
     fun getAllWhitelistApps(context: Context): Set<String> {
         return try {
-            KioskWhitelistManager.Companion.getInstance(context).getAllWhitelistPackages()
+            KioskWhitelistManager.getInstance(context).getAllWhitelistPackages()
         } catch (e: Exception) {
             emptySet()
         }
@@ -123,7 +131,7 @@ object KioskUtils {
 
     fun getWhitelistStats(context: Context): String {
         return try {
-            KioskWhitelistManager.Companion.getInstance(context).getWhitelistStats()
+            KioskWhitelistManager.getInstance(context).getWhitelistStats()
         } catch (e: Exception) {
             "获取统计信息失败"
         }
@@ -161,7 +169,7 @@ object KioskUtils {
 
             val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
-            val whitelistManager = KioskWhitelistManager.Companion.getInstance(context)
+            val whitelistManager = KioskWhitelistManager.getInstance(context)
 
             val newPackages = whitelistManager.getWhitelistAppsForKiosk()
             val currentPackages = devicePolicyManager.getLockTaskPackages(adminComponent)

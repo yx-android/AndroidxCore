@@ -106,40 +106,49 @@ class KioskWhitelistManager private constructor(private val context: Context) {
 
     @Synchronized
     fun addToWhitelist(packageName: String): Boolean {
-        // 如果包名已在白名单中（系统或自定义），则无需重复添加
-        if (isInWhitelist(packageName)) return false
+        return addToWhitelist(listOf(packageName))
+    }
 
+    @Synchronized
+    fun addToWhitelist(packageNames: Collection<String>): Boolean {
         return try {
             val currentList = cachedCustomWhitelist.toMutableSet()
-            if (currentList.add(packageName)) {
+            val toAdd = packageNames.filter { !isInWhitelist(it) }
+            if (toAdd.isEmpty()) return false
+            
+            if (currentList.addAll(toAdd)) {
                 context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit()
                     .putStringSet(KEY_CUSTOM_WHITELIST, currentList)
                     .apply()
                 refreshCache()
-                Log.d(TAG, "已添加到自定义白名单: $packageName")
+                Log.d(TAG, "已添加到自定义白名单: ${toAdd.size} 个包")
                 true
             } else false
         } catch (e: Exception) {
-            Log.e(TAG, "添加白名单失败: $packageName", e)
+            Log.e(TAG, "批量添加白名单失败", e)
             false
         }
     }
 
     @Synchronized
     fun removeFromWhitelist(packageName: String): Boolean {
+        return removeFromWhitelist(listOf(packageName))
+    }
+
+    @Synchronized
+    fun removeFromWhitelist(packageNames: Collection<String>): Boolean {
         return try {
             val currentList = cachedCustomWhitelist.toMutableSet()
-            // remove() 只有在元素确实存在于自定义名单中时才会返回 true
-            if (currentList.remove(packageName)) {
+            if (currentList.removeAll(packageNames.toSet())) {
                 context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit()
                     .putStringSet(KEY_CUSTOM_WHITELIST, currentList)
                     .apply()
                 refreshCache()
-                Log.d(TAG, "已从自定义白名单移除: $packageName")
+                Log.d(TAG, "已从自定义白名单移除: ${packageNames.size} 个包")
                 true
             } else false
         } catch (e: Exception) {
-            Log.e(TAG, "移除白名单失败: $packageName", e)
+            Log.e(TAG, "批量移除白名单失败", e)
             false
         }
     }
