@@ -9,18 +9,9 @@ import android.content.Context.DEVICE_POLICY_SERVICE
 import android.util.Log
 
 
-public fun Application.initKioskMode() {
+fun Application.initKioskMode() {
     try {
         Log.d("App", "开始初始化Kiosk模式")
-
-        // 启用降级的入口系统（页面内悬浮按钮，无自动跳转）
-        KioskUtils.enableLiteEntrySystem(this)
-
-        // 检查网络状态，但不自动跳转
-        val hasNetwork: Boolean = KioskUtils.isNetworkAvailable(this)
-        if (!hasNetwork) {
-            Log.w("App", "检测到无网络连接")
-        }
 
         // 设置增强的Kiosk模式（包含白名单、状态栏保留、屏蔽恢复出厂设置等）
         val setupSuccess: Boolean = KioskUtils.setupEnhancedKioskMode(this)
