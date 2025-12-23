@@ -1,7 +1,6 @@
 package com.haofenshu.lnkscreen
 
 import android.content.BroadcastReceiver
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Handler
@@ -59,13 +58,18 @@ class BootReceiver : BroadcastReceiver() {
         try {
             // 检查是否为设备所有者
             if (KioskUtils.isDeviceOwner(context)) {
-                Log.d(TAG, "检测到设备所有者权限，重新初始化Kiosk模式")
 
-                // 重新启用Kiosk模式设置
-                KioskUtils.setupEnhancedKioskMode(context)
+                // 设置增强的Kiosk模式（包含白名单、状态栏保留、屏蔽恢复出厂设置等）
+                val setupSuccess: Boolean =
+                    KioskUtils.setupEnhancedKioskMode(context.applicationContext)
 
-                // 确保应用在白名单中
-                KioskUtils.enableAppUpdate(context, null)
+                if (setupSuccess) {
+                    // 确保当前应用可以被更新
+                    KioskUtils.enableAppUpdate(context.applicationContext, null)
+                    Log.d("App", "增强Kiosk模式设置成功")
+                } else {
+                    Log.w("App", "增强Kiosk模式设置失败")
+                }
 
                 Log.d(TAG, "Kiosk模式初始化完成")
             } else {
