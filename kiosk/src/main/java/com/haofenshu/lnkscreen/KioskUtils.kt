@@ -400,20 +400,17 @@ object KioskUtils {
 
     fun shutdownDevice(context: Context): Boolean {
         return try {
-            if (isDeviceOwner(context)) {
-                val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-                val adminComponent = getDeviceAdminComponent(context)
-                try {
-                    devicePolicyManager.reboot(adminComponent)
-                    return true
-                } catch (e: Exception) {}
-            }
+            // 1. 优先尝试标准的系统关机意图
+            // 注意：ACTION_REQUEST_SHUTDOWN 通常需要系统权限 (android.permission.SHUTDOWN)
             val intent = Intent("android.intent.action.ACTION_REQUEST_SHUTDOWN")
                 .putExtra("android.intent.extra.KEY_CONFIRM", false)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
             true
         } catch (e: Exception) {
+            Log.e(TAG, "关机意图发送失败，尝试以重启作为保底方案", e)
+            // 2. 如果关机失败（常见于非系统应用），尝试调用 DPC 的重启接口作为保底
+            // 因为 DPC 官方 API 不提供直接的 shutdown 接口，reboot 是最接近的操作
             rebootDevice(context)
         }
     }
