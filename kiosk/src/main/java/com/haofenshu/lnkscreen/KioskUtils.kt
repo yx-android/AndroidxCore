@@ -25,6 +25,22 @@ object KioskUtils {
         return ComponentName(context, MyDeviceAdminReceiver::class.java)
     }
 
+    /**
+     * 安全设置全局参数，确保单个设置项失败不会中断其他流程
+     */
+    private fun safeSetGlobalSetting(
+        dpm: DevicePolicyManager,
+        admin: ComponentName,
+        setting: String,
+        value: String
+    ) {
+        try {
+            dpm.setGlobalSetting(admin, setting, value)
+        } catch (e: Exception) {
+            Log.w(TAG, "设置全局参数失败 [$setting]: ${e.message}")
+        }
+    }
+
     fun setupEnhancedKioskMode(context: Context): Boolean {
         return try {
             val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
@@ -35,30 +51,27 @@ object KioskUtils {
                 return false
             }
 
-            // 1. 设置白名单应用为锁定任务包 (内部已增加变化检测)
+            // 1. 设置白名单应用
             refreshLockTaskPackages(context)
 
-            // 2. 配置锁定任务特性（保留状态栏但屏蔽通知）
+            // 2. 配置锁定任务特性
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 val features = DevicePolicyManager.LOCK_TASK_FEATURE_SYSTEM_INFO or
                         DevicePolicyManager.LOCK_TASK_FEATURE_HOME
                 devicePolicyManager.setLockTaskFeatures(adminComponent, features)
-                Log.d(TAG, "保留状态栏但屏蔽通知功能")
             }
 
-            // 3. 屏蔽恢复出厂设置功能
+            // 3. 用户限制
             devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
             devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
             devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
 
-            // 5. 屏蔽特定的系统设置选项
+            // 4. 屏蔽特定设置
             restrictSpecificSettings(context, devicePolicyManager, adminComponent)
 
-            // 4. 允许应用卸载和更新
-            devicePolicyManager.setUninstallBlocked(adminComponent, context.packageName, false)
-
-            // 5. 设置屏幕常亮
-            devicePolicyManager.setGlobalSetting(
+            // 5. 设置屏幕常亮 (改用安全设置)
+            safeSetGlobalSetting(
+                devicePolicyManager,
                 adminComponent,
                 Settings.Global.STAY_ON_WHILE_PLUGGED_IN,
                 (BatteryManager.BATTERY_PLUGGED_AC or
@@ -160,9 +173,6 @@ object KioskUtils {
         }
     }
 
-    /**
-     * 刷新锁定任务包，增加变化检查以避免不必要的重复调用
-     */
     fun refreshLockTaskPackages(context: Context): Boolean {
         return try {
             if (!isDeviceOwner(context)) return false
@@ -174,14 +184,11 @@ object KioskUtils {
             val newPackages = whitelistManager.getWhitelistAppsForKiosk()
             val currentPackages = devicePolicyManager.getLockTaskPackages(adminComponent)
 
-            // 仅在列表发生实质性变化时调用系统 API
             if (newPackages.toSet() == currentPackages.toSet()) {
-                Log.d(TAG, "锁定任务包列表无变化，跳过更新")
                 return true
             }
 
             devicePolicyManager.setLockTaskPackages(adminComponent, newPackages)
-            Log.d(TAG, "已更新锁定任务包: ${newPackages.size} 个应用")
             true
         } catch (e: Exception) {
             Log.e(TAG, "刷新锁定任务包失败", e)
@@ -272,8 +279,6 @@ object KioskUtils {
         }
     }
 
-    // ===== 网络检测功能 =====
-
     fun isNetworkAvailable(context: Context): Boolean {
         return try {
             val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -309,8 +314,6 @@ object KioskUtils {
             "获取网络状态信息失败"
         }
     }
-
-    // ===== 屏蔽逻辑 (minSdk 26 优化) =====
 
     private fun restrictSpecificSettings(
         context: Context,
@@ -400,17 +403,12 @@ object KioskUtils {
 
     fun shutdownDevice(context: Context): Boolean {
         return try {
-            // 1. 优先尝试标准的系统关机意图
-            // 注意：ACTION_REQUEST_SHUTDOWN 通常需要系统权限 (android.permission.SHUTDOWN)
             val intent = Intent("android.intent.action.ACTION_REQUEST_SHUTDOWN")
                 .putExtra("android.intent.extra.KEY_CONFIRM", false)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
             true
         } catch (e: Exception) {
-            Log.e(TAG, "关机意图发送失败，尝试以重启作为保底方案", e)
-            // 2. 如果关机失败（常见于非系统应用），尝试调用 DPC 的重启接口作为保底
-            // 因为 DPC 官方 API 不提供直接的 shutdown 接口，reboot 是最接近的操作
             rebootDevice(context)
         }
     }
@@ -430,8 +428,6 @@ object KioskUtils {
         }
     }
 
-    // ===== Honor 特有逻辑 =====
-
     private fun blockHonorDockBarFloat(
         context: Context,
         devicePolicyManager: DevicePolicyManager,
@@ -448,8 +444,8 @@ object KioskUtils {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 devicePolicyManager.addUserRestriction(adminComponent, "no_side_gestures")
             }
-            devicePolicyManager.setGlobalSetting(adminComponent, "edge_gestures_enabled", "0")
-            devicePolicyManager.setGlobalSetting(adminComponent, "honor_dock_bar_enabled", "0")
+            safeSetGlobalSetting(devicePolicyManager, adminComponent, "edge_gestures_enabled", "0")
+            safeSetGlobalSetting(devicePolicyManager, adminComponent, "honor_dock_bar_enabled", "0")
         } catch (e: Exception) {}
     }
 
@@ -479,10 +475,13 @@ object KioskUtils {
                 putBoolean("no_subsettings_reset", true)
             }
             devicePolicyManager.setApplicationRestrictions(adminComponent, "com.android.settings", bundle)
-            devicePolicyManager.setGlobalSetting(adminComponent, Settings.Global.DEVICE_PROVISIONED, "1")
-            devicePolicyManager.setGlobalSetting(adminComponent, "honor_factory_reset_enabled", "0")
-            devicePolicyManager.setGlobalSetting(adminComponent, "honor_network_reset_enabled", "0")
-            devicePolicyManager.setGlobalSetting(adminComponent, "honor_reset_settings_enabled", "0")
+            
+            // 使用 safeSetGlobalSetting 确保单个失败不影响后续
+            safeSetGlobalSetting(devicePolicyManager, adminComponent, Settings.Global.DEVICE_PROVISIONED, "1")
+            safeSetGlobalSetting(devicePolicyManager, adminComponent, "honor_factory_reset_enabled", "0")
+            safeSetGlobalSetting(devicePolicyManager, adminComponent, "honor_network_reset_enabled", "0")
+            safeSetGlobalSetting(devicePolicyManager, adminComponent, "honor_reset_settings_enabled", "0")
+            
             devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
             devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_NETWORK_RESET)
         } catch (e: Exception) {}
