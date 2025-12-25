@@ -325,6 +325,11 @@ object KioskUtils {
             devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_NETWORK_RESET)
             devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)
 
+            // 屏蔽分屏/多窗口全局设置
+            safeSetGlobalSetting(devicePolicyManager, adminComponent, "multi_window_enabled", "0")
+            safeSetGlobalSetting(devicePolicyManager, adminComponent, "force_resizable_activities", "0")
+            safeSetGlobalSetting(devicePolicyManager, adminComponent, "enable_freeform_support", "0")
+
             blockHonorResetSettings(context, devicePolicyManager, adminComponent)
             restrictSmartWindowFeatures(context, devicePolicyManager, adminComponent)
         } catch (e: Exception) {
@@ -446,6 +451,8 @@ object KioskUtils {
             }
             safeSetGlobalSetting(devicePolicyManager, adminComponent, "edge_gestures_enabled", "0")
             safeSetGlobalSetting(devicePolicyManager, adminComponent, "honor_dock_bar_enabled", "0")
+            safeSetGlobalSetting(devicePolicyManager, adminComponent, "multi_window_menu_enabled", "0")
+            safeSetGlobalSetting(devicePolicyManager, adminComponent, "is_short_side_gesture_enabled", "0")
         } catch (e: Exception) {}
     }
 
