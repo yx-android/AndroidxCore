@@ -1,9 +1,10 @@
 package com.haofenshu.lnkscreen
 
 import android.app.AlertDialog
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
+import android.content.IntentFilter
 import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.NetworkInfo
@@ -18,8 +19,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 
 class SystemSettingsActivity : AppCompatActivity() {
 
@@ -33,7 +32,7 @@ class SystemSettingsActivity : AppCompatActivity() {
     private lateinit var backButton: View
     private lateinit var versionText: TextView
     private lateinit var debugButtonsLayout: LinearLayout
-    
+
     // 新增调试按钮
     private lateinit var developerButton: View
     private lateinit var applicationButton: View
@@ -43,12 +42,16 @@ class SystemSettingsActivity : AppCompatActivity() {
 
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var wifiManager: WifiManager
-    private var input = 0
+    private var input = 1
+
+    // 监听网络变化的广播接收器
+    private val networkReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            updateNetworkStatus()
+        }
+    }
 
     companion object {
-        private const val REQUEST_CAMERA_PERMISSION = 1001
-        private const val REQUEST_STORAGE_PERMISSION = 1002
-        private const val REQUEST_WRITE_PERMISSION = 1003
         const val KEY_INPUT = "key_input"
     }
 
@@ -65,8 +68,28 @@ class SystemSettingsActivity : AppCompatActivity() {
         initViews()
         initServices()
         setupClickListeners()
-        updateNetworkStatus()
+        
         input = intent.getIntExtra(KEY_INPUT, 0)
+        if (input == 0) {
+            setResult(111111, Intent())
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // 1. 每次页面回到前台时，主动刷新一次网络状态
+        updateNetworkStatus()
+        // 2. 注册广播监听实时变化
+        val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
+        registerReceiver(networkReceiver, filter)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // 页面不可见时注销监听，避免内存泄漏
+        try {
+            unregisterReceiver(networkReceiver)
+        } catch (e: Exception) {}
     }
 
     private fun initViews() {
@@ -80,15 +103,13 @@ class SystemSettingsActivity : AppCompatActivity() {
         backButton = findViewById(R.id.backButton)
         versionText = findViewById(R.id.versionText)
         debugButtonsLayout = findViewById(R.id.debugButtonsLayout)
-        
-        // 绑定调试按钮
+
         developerButton = findViewById(R.id.developerButton)
         applicationButton = findViewById(R.id.applicationButton)
         cameraButton = findViewById(R.id.cameraButton)
         galleryButton = findViewById(R.id.galleryButton)
         fileManagerButton = findViewById(R.id.fileManagerButton)
 
-        // 设置版本号
         try {
             val packageInfo = packageManager.getPackageInfo(packageName, 0)
             versionText.text = "版本号: ${packageInfo.versionName}"
@@ -96,7 +117,6 @@ class SystemSettingsActivity : AppCompatActivity() {
             versionText.text = "版本号: 未知"
         }
 
-        // 检查是否为Debug模式
         checkDebugMode()
     }
 
@@ -106,67 +126,57 @@ class SystemSettingsActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
-        // 返回按钮
         backButton.setOnClickListener {
-            if (input == 0) {
-                setResult(111111, Intent())
-                finish()
-            }
+            finish()
         }
 
-        // 基本功能按钮
         brightnessButton.setOnClickListener { openBrightnessSettings() }
         soundSettingsButton.setOnClickListener { openSoundSettings() }
         dateTimeButton.setOnClickListener { openDateTimeSettings() }
 
-        // 网络检测按钮
         networkCheckButton.setOnClickListener {
             performNetworkCheck()
         }
 
-        // 电源管理按钮
         shutdownButton.setOnClickListener {
             showShutdownDialog()
         }
         rebootButton.setOnClickListener {
             showRebootDialog()
         }
-        
-        // 调试功能按钮点击事件
+
         developerButton.setOnClickListener {
             KioskUtils.openSystemSettings(this, Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
         }
         applicationButton.setOnClickListener {
             KioskUtils.openSystemSettings(this, Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
         }
-        
+
         cameraButton.setOnClickListener {
-            // 使用标准相机 Action
             tryLaunchIntent(Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA))
         }
-        
+
         galleryButton.setOnClickListener {
-            // 使用标准相册选择器
-            tryLaunchIntent(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_GALLERY))
+            tryLaunchIntent(
+                Intent.makeMainSelectorActivity(
+                    Intent.ACTION_MAIN,
+                    Intent.CATEGORY_APP_GALLERY
+                )
+            )
         }
-        
+
         fileManagerButton.setOnClickListener {
-            // 尝试使用标准文件管理器分类
-            val intent = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_FILES)
+            val intent =
+                Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_FILES)
             if (!tryLaunchIntent(intent)) {
-                // 如果找不到通用的，尝试打开下载管理器（系统通常会跳转到文件浏览）
                 tryLaunchIntent(Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS))
             }
         }
     }
 
-    /**
-     * 尝试启动 Intent，如果失败则返回 false
-     */
     private fun tryLaunchIntent(intent: Intent): Boolean {
         return try {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            // 检查系统是否有应用能处理这个 Intent
             if (intent.resolveActivity(packageManager) != null) {
                 startActivity(intent)
                 true
@@ -179,15 +189,9 @@ class SystemSettingsActivity : AppCompatActivity() {
     }
 
     private fun checkDebugMode() {
-        val applicationInfo = applicationInfo
-        val isDebug =
-            (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
-
+        val isDebug = (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
         if (isDebug) {
-            // 显示Debug按钮组
             debugButtonsLayout.visibility = View.VISIBLE
-
-            // 设置Debug按钮点击事件
             debugButtonsLayout.findViewById<View>(R.id.exitKioskButton).setOnClickListener {
                 handleExitKioskMode()
             }
@@ -204,17 +208,14 @@ class SystemSettingsActivity : AppCompatActivity() {
                 wifiStatusText.text = "✓ WiFi已连接"
                 wifiStatusText.setTextColor(Color.parseColor("#4CAF50"))
             }
-
             isConnected -> {
                 wifiStatusText.text = "✓ 已连接到网络"
                 wifiStatusText.setTextColor(Color.parseColor("#4CAF50"))
             }
-
             wifiManager.isWifiEnabled -> {
                 wifiStatusText.text = "WiFi已开启，但未连接网络"
                 wifiStatusText.setTextColor(Color.parseColor("#FF9800"))
             }
-
             else -> {
                 wifiStatusText.text = "✗ 无网络连接"
                 wifiStatusText.setTextColor(Color.parseColor("#F44336"))
@@ -258,17 +259,11 @@ class SystemSettingsActivity : AppCompatActivity() {
     }
 
     private fun openBrightnessSettings() {
-        // 自动清除亮度限制，兼容旧版本
         try {
             if (KioskUtils.isBrightnessRestricted(this)) {
-                // 静默清除限制，不显示提示
                 KioskUtils.clearBrightnessRestriction(this)
             }
-        } catch (e: Exception) {
-            // 忽略错误，继续打开设置
-        }
-
-        // 打开亮度设置页面
+        } catch (e: Exception) {}
         KioskUtils.openSystemSettings(this, Settings.ACTION_DISPLAY_SETTINGS)
     }
 
