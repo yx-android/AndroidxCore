@@ -4,6 +4,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -82,6 +83,9 @@ object KioskUtils {
             // 6. 禁用锁屏
             devicePolicyManager.setKeyguardDisabled(adminComponent, true)
 
+            // 移除自动冻结，改为手动管理
+            // freezeNonWhitelistedApps(context)
+
             Log.d(TAG, "增强Kiosk模式配置完成")
             true
         } catch (e: Exception) {
@@ -100,6 +104,16 @@ object KioskUtils {
             val result = whitelistManager.addToWhitelist(packageNames)
             if (result && isKioskModeActive(context)) {
                 refreshLockTaskPackages(context)
+                // 如果应用被隐藏了，尝试取消隐藏
+                try {
+                    val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+                    val admin = getDeviceAdminComponent(context)
+                    packageNames.forEach { pkg ->
+                        if (dpm.isApplicationHidden(admin, pkg)) {
+                            dpm.setApplicationHidden(admin, pkg, false)
+                        }
+                    }
+                } catch (e: Exception) {}
             }
             result
         } catch (e: Exception) {
@@ -220,6 +234,9 @@ object KioskUtils {
             devicePolicyManager.setPermittedAccessibilityServices(adminComponent, null)
             devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_DEBUGGING_FEATURES)
             devicePolicyManager.setKeyguardDisabled(adminComponent, false)
+
+            // 移除自动解冻，以免影响手动管理的意图
+            // unfreezeAllApps(context)
 
             Log.d(TAG, "Kiosk模式已禁用")
             true
@@ -540,5 +557,65 @@ object KioskUtils {
         } catch (e: Exception) {
             false
         }
+    }
+
+    /**
+     * 设置单个应用的隐藏/冻结状态
+     */
+    fun setAppHidden(context: Context, packageName: String, hidden: Boolean): Boolean {
+        return try {
+            if (!isDeviceOwner(context)) return false
+            val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val admin = getDeviceAdminComponent(context)
+            dpm.setApplicationHidden(admin, packageName, hidden)
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "设置应用隐藏状态失败: pkg=$packageName, hidden=$hidden", e)
+            false
+        }
+    }
+
+    /**
+     * 批量设置应用隐藏/冻结状态
+     */
+    fun setAppsHidden(context: Context, packageNames: List<String>, hidden: Boolean): Boolean {
+        return try {
+            if (!isDeviceOwner(context)) return false
+            val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val admin = getDeviceAdminComponent(context)
+            packageNames.forEach { pkg ->
+                try { dpm.setApplicationHidden(admin, pkg, hidden) } catch (e: Exception) {}
+            }
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun isAppHidden(context: Context, packageName: String): Boolean {
+        return try {
+            if (!isDeviceOwner(context)) return false
+            val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val admin = getDeviceAdminComponent(context)
+            dpm.isApplicationHidden(admin, packageName)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * 获取所有已安装的应用信息
+     */
+    fun getInstalledApps(context: Context): List<ApplicationInfo> {
+        val pm = context.packageManager
+        return pm.getInstalledApplications(PackageManager.MATCH_UNINSTALLED_PACKAGES or PackageManager.MATCH_DISABLED_COMPONENTS)
+    }
+
+    /**
+     * 判断是否为系统应用
+     */
+    fun isSystemApp(appInfo: ApplicationInfo): Boolean {
+        return (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 || 
+               (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
     }
 }

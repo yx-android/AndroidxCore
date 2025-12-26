@@ -30,6 +30,14 @@
             android:label="系统设置管理"
             android:screenOrientation="portrait" />
 
+        <!-- 应用管理（冻结/解冻）页面 -->
+        <activity
+            android:name=".AppManagementActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:label="应用管理"
+            android:screenOrientation="portrait" />
+
         <!-- 开机自启 -->
         <receiver
             android:name=".BootReceiver"

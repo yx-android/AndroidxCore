@@ -36,6 +36,7 @@ class SystemSettingsActivity : AppCompatActivity() {
     // 新增调试按钮
     private lateinit var developerButton: View
     private lateinit var applicationButton: View
+    private lateinit var appManagementButton: View
     private lateinit var cameraButton: View
     private lateinit var galleryButton: View
     private lateinit var fileManagerButton: View
@@ -106,6 +107,7 @@ class SystemSettingsActivity : AppCompatActivity() {
 
         developerButton = findViewById(R.id.developerButton)
         applicationButton = findViewById(R.id.applicationButton)
+        appManagementButton = findViewById(R.id.appManagementButton)
         cameraButton = findViewById(R.id.cameraButton)
         galleryButton = findViewById(R.id.galleryButton)
         fileManagerButton = findViewById(R.id.fileManagerButton)
@@ -150,6 +152,10 @@ class SystemSettingsActivity : AppCompatActivity() {
         }
         applicationButton.setOnClickListener {
             KioskUtils.openSystemSettings(this, Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
+        }
+        
+        appManagementButton.setOnClickListener {
+            startActivity(Intent(this, AppManagementActivity::class.java))
         }
 
         cameraButton.setOnClickListener {
