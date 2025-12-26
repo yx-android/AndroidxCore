@@ -52,6 +52,13 @@ object KioskUtils {
                 return false
             }
 
+            // 初始化时先尝试解冻所有应用，防止之前的异常隐藏导致系统功能受限
+            // try {
+            //    unfreezeAllApps(context)
+            // } catch (e: Exception) {
+            //    Log.w(TAG, "初始化解冻应用失败: ${e.message}")
+            // }
+
             // 1. 设置白名单应用
             refreshLockTaskPackages(context)
 
@@ -83,9 +90,6 @@ object KioskUtils {
             // 6. 禁用锁屏
             devicePolicyManager.setKeyguardDisabled(adminComponent, true)
 
-            // 移除自动冻结，改为手动管理
-            // freezeNonWhitelistedApps(context)
-
             Log.d(TAG, "增强Kiosk模式配置完成")
             true
         } catch (e: Exception) {
@@ -105,15 +109,15 @@ object KioskUtils {
             if (result && isKioskModeActive(context)) {
                 refreshLockTaskPackages(context)
                 // 如果应用被隐藏了，尝试取消隐藏
-                try {
-                    val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-                    val admin = getDeviceAdminComponent(context)
-                    packageNames.forEach { pkg ->
-                        if (dpm.isApplicationHidden(admin, pkg)) {
-                            dpm.setApplicationHidden(admin, pkg, false)
-                        }
-                    }
-                } catch (e: Exception) {}
+                // try {
+                //    val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+                //    val admin = getDeviceAdminComponent(context)
+                //    packageNames.forEach { pkg ->
+                //        if (dpm.isApplicationHidden(admin, pkg)) {
+                //            dpm.setApplicationHidden(admin, pkg, false)
+                //        }
+                //    }
+                // } catch (e: Exception) {}
             }
             result
         } catch (e: Exception) {
@@ -234,9 +238,6 @@ object KioskUtils {
             devicePolicyManager.setPermittedAccessibilityServices(adminComponent, null)
             devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_DEBUGGING_FEATURES)
             devicePolicyManager.setKeyguardDisabled(adminComponent, false)
-
-            // 移除自动解冻，以免影响手动管理的意图
-            // unfreezeAllApps(context)
 
             Log.d(TAG, "Kiosk模式已禁用")
             true
@@ -617,5 +618,43 @@ object KioskUtils {
     fun isSystemApp(appInfo: ApplicationInfo): Boolean {
         return (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 || 
                (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+    }
+
+    /**
+     * 解冻（显示）所有已隐藏的应用
+     */
+    fun unfreezeAllApps(context: Context): Boolean {
+        return setNonWhitelistedAppsHidden(context, false)
+    }
+
+    private fun setNonWhitelistedAppsHidden(context: Context, hidden: Boolean): Boolean {
+        return try {
+            if (!isDeviceOwner(context)) return false
+            val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val admin = getDeviceAdminComponent(context)
+            val whitelist = KioskWhitelistManager.getInstance(context).getAllWhitelistPackages()
+
+            val pm = context.packageManager
+            val packages = pm.getInstalledPackages(0)
+
+            packages.forEach { pkgInfo ->
+                val pkgName = pkgInfo.packageName
+                if (hidden) {
+                    if (!whitelist.contains(pkgName) && pkgName != context.packageName) {
+                        try { dpm.setApplicationHidden(admin, pkgName, true) } catch (e: Exception) {}
+                    }
+                } else {
+                    try {
+                        if (dpm.isApplicationHidden(admin, pkgName)) {
+                            dpm.setApplicationHidden(admin, pkgName, false)
+                        }
+                    } catch (e: Exception) {}
+                }
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "批量设置应用隐藏状态失败: hidden=$hidden", e)
+            false
+        }
     }
 }
