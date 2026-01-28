@@ -42,6 +42,11 @@ fun Application.removeAppsFromWhitelist(packageNames: Collection<String>) {
  */
 fun Application.startLockTaskIfNeeded(context: Context, applicationId: String) {
     try {
+        val dpm = context.getSystemService(DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val admin: ComponentName = ComponentName(context, MyDeviceAdminReceiver::class.java)
+        val newPackages = KioskWhitelistManager.getInstance(context).getWhitelistAppsForKiosk()
+        // 设置允许在LockTask模式中运行的应用白名单（仅当前应用）
+        dpm.setLockTaskPackages(admin, newPackages.plus(applicationId))
         if (KioskUtils.isDeviceOwner(context)) {
             if (context is Activity) {
                 context.startLockTask()
@@ -64,9 +69,9 @@ fun Application.enableBasicLockTaskMode(context: Context, applicationId: String)
     try {
         val dpm = context.getSystemService(DEVICE_POLICY_SERVICE) as DevicePolicyManager
         val admin: ComponentName = ComponentName(context, MyDeviceAdminReceiver::class.java)
-
+        val newPackages = KioskWhitelistManager.getInstance(context).getWhitelistAppsForKiosk()
         // 设置允许在LockTask模式中运行的应用白名单（仅当前应用）
-        dpm.setLockTaskPackages(admin, arrayOf<String?>(applicationId))
+        dpm.setLockTaskPackages(admin, newPackages.plus(applicationId))
 
         // 检查是否允许进入LockTask模式，如果允许则启动
         if (dpm.isLockTaskPermitted(applicationId)) {
