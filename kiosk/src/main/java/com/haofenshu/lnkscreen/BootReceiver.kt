@@ -36,14 +36,6 @@ class BootReceiver : BroadcastReceiver() {
             // 首先尝试重新初始化Kiosk模式（如果有权限）
             initKioskModeIfPossible(context)
 
-            // 使用通用启动管理器启动应用
-            val success = KioskLaunchManager.launchApp(context)
-
-            if (success) {
-                Log.d(TAG, "应用启动成功")
-            } else {
-                Log.e(TAG, "应用启动失败")
-            }
 
         } catch (e: Exception) {
             Log.e(TAG, "启动应用异常", e)
@@ -69,6 +61,15 @@ class BootReceiver : BroadcastReceiver() {
                     Log.d("App", "增强Kiosk模式设置成功")
                 } else {
                     Log.w("App", "增强Kiosk模式设置失败")
+                }
+
+                // 使用通用启动管理器启动应用
+                val success = KioskLaunchManager.launchApp(context)
+
+                if (success) {
+                    Log.d(TAG, "应用启动成功")
+                } else {
+                    Log.e(TAG, "应用启动失败")
                 }
 
                 Log.d(TAG, "Kiosk模式初始化完成")
