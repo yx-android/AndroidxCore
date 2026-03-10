@@ -23,12 +23,13 @@ class KioskWhitelistManager private constructor(private val context: Context) {
 
         // 提取静态系统白名单，减少每次调用时的集合创建开销
         private val BASE_SYSTEM_WHITELIST = setOf(
+            "moe.shizuku.privileged.api",
+            "com.catchingnow.icebox",
+            "com.michael.apprec",
             "com.tencent.mm",
             "com.tencent.wework",
             "com.quark.browser",
             "com.baidu.netdisk",
-            "com.jingzhunxue.aicoach",
-            "com.jingzhunxue.tifenben",
             "com.android.inputmethod.latin",
             "cn.wps.moffice_eng",
             "com.android.modulemetadata",
@@ -158,7 +159,7 @@ class KioskWhitelistManager private constructor(private val context: Context) {
     private var cachedFullWhitelist: Set<String> = emptySet()
 
     private val finalSystemWhitelist: Set<String> by lazy {
-        BASE_SYSTEM_WHITELIST + context.packageName
+        BASE_SYSTEM_WHITELIST
     }
 
     init {

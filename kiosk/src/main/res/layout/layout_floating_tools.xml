@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/item_style_white"
+    android:elevation="8dp"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:id="@+id/ll_drag_handle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingBottom="4dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="≡ 拖动小窗 ≡"
+            android:textSize="10sp"
+            android:textColor="#888888"/>
+        
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"/>
+            
+        <TextView
+            android:id="@+id/btn_close_floating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✕"
+            android:textSize="14sp"
+            android:textColor="#FF0000"
+            android:paddingStart="8dp"
+            android:paddingEnd="4dp"
+            android:textStyle="bold"/>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btn_launch_shizuku_setup"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:text="Shizuku 测试页"
+        android:textSize="12sp"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#4CAF50"
+        android:minHeight="40dp"
+        android:layout_marginBottom="4dp"/>
+
+    <Button
+        android:id="@+id/btn_launch_shizuku"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:text="Shizuku"
+        android:textSize="12sp"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#2196F3"
+        android:minHeight="40dp"
+        android:layout_marginBottom="4dp"/>
+
+    <Button
+        android:id="@+id/btn_launch_icebox"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:text="冰箱 IceBox"
+        android:textSize="12sp"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#00BCD4"
+        android:minHeight="40dp"
+        android:layout_marginBottom="4dp"/>
+
+    <Button
+        android:id="@+id/btn_launch_app_rec"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:text="App Rec"
+        android:textSize="12sp"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#FF9800"
+        android:minHeight="40dp"
+        android:layout_marginBottom="4dp"/>
+
+    <Button
+        android:id="@+id/btn_exit_kiosk"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:text="退出单应用"
+        android:textSize="12sp"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#FF5722"
+        android:minHeight="40dp"
+        android:layout_marginBottom="4dp"/>
+
+    <Button
+        android:id="@+id/btn_remove_admin"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:text="撤销设备管理"
+        android:textSize="12sp"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#9C27B0"
+        android:minHeight="40dp"/>
+</LinearLayout>

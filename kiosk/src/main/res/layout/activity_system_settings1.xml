@@ -219,6 +219,46 @@
                     android:textSize="13sp" />
             </LinearLayout>
 
+            <!-- 独立的高级工具：悬浮工具箱 (仅限设备拥有者可见) -->
+            <LinearLayout
+                android:id="@+id/floatingToolLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/item_style_white"
+                android:orientation="vertical"
+                android:paddingLeft="18dp"
+                android:paddingTop="20dp"
+                android:paddingRight="18dp"
+                android:paddingBottom="9dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:drawableLeft="@drawable/line_vertical_style"
+                    android:drawablePadding="7dp"
+                    android:gravity="center_vertical"
+                    android:paddingBottom="10dp"
+                    android:text="高级环境工具"
+                    android:textColor="#FF333333"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/floatingToolButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:drawableLeft="@mipmap/icon_system_sy"
+                    android:drawableRight="@mipmap/icon_system_arrow"
+                    android:drawablePadding="6dp"
+                    android:gravity="center_vertical"
+                    android:paddingTop="11dp"
+                    android:paddingBottom="11dp"
+                    android:text="🪟 开启浮窗捷径 (Shizuku/冰箱)"
+                    android:textColor="#FF333333"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
             <LinearLayout
                 android:id="@+id/debugButtonsLayout"
                 android:layout_width="match_parent"
@@ -340,7 +380,6 @@
                     android:text="📱 退出单应用模式"
                     android:textColor="#FF333333"
                     android:textSize="13sp" />
-
 
             </LinearLayout>
 

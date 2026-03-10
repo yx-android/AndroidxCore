@@ -42,6 +42,15 @@ object KioskUtils {
         }
     }
 
+    /**
+     * 设置增强的Kiosk模式
+     * 
+     * 【完美 Kiosk 模式（单应用锁定）的三要素】
+     * 完整的企业级单应用锁定方案，防止应用通过任何方式退到后台或被杀死，必须结合以下三点：
+     * 1. Device Owner 白名单：通过此方法或 `DevicePolicyManager.setLockTaskPackages()` 将应用添加到锁定任务白名单。
+     * 2. 清单文件声明：目标 Activity 的 AndroidManifest.xml 中必须设置 `android:lockTaskMode="if_whitelisted"`。
+     * 3. 代码启动：应用必须在合适时机（如 onResume）主动调用 `Activity.startLockTask()`。
+     */
     fun setupEnhancedKioskMode(context: Context): Boolean {
         return try {
             val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
@@ -173,6 +182,37 @@ object KioskUtils {
             val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             devicePolicyManager.isDeviceOwnerApp(context.packageName)
         } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * 判断当前应用是否已经获取了设备管理器（Device Admin）权限
+     */
+    fun isDeviceAdmin(context: Context): Boolean {
+        return try {
+            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            devicePolicyManager.isAdminActive(getDeviceAdminComponent(context))
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * 撤销当前的设备管理器（Device Admin）权限
+     */
+    fun removeActiveAdmin(context: Context): Boolean {
+        return try {
+            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val adminComponent = getDeviceAdminComponent(context)
+            if (devicePolicyManager.isAdminActive(adminComponent)) {
+                devicePolicyManager.removeActiveAdmin(adminComponent)
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "撤销设备管理器失败", e)
             false
         }
     }

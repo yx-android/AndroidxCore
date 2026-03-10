@@ -9,6 +9,7 @@ import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.NetworkInfo
 import android.net.wifi.WifiManager
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -32,6 +33,7 @@ class SystemSettingsActivity : AppCompatActivity() {
     private lateinit var backButton: View
     private lateinit var versionText: TextView
     private lateinit var debugButtonsLayout: LinearLayout
+    private lateinit var floatingToolLayout: LinearLayout
 
     // 新增调试按钮
     private lateinit var developerButton: View
@@ -40,6 +42,7 @@ class SystemSettingsActivity : AppCompatActivity() {
     private lateinit var cameraButton: View
     private lateinit var galleryButton: View
     private lateinit var fileManagerButton: View
+    private lateinit var floatingToolButton: View
 
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var wifiManager: WifiManager
@@ -104,6 +107,7 @@ class SystemSettingsActivity : AppCompatActivity() {
         backButton = findViewById(R.id.backButton)
         versionText = findViewById(R.id.versionText)
         debugButtonsLayout = findViewById(R.id.debugButtonsLayout)
+        floatingToolLayout = findViewById(R.id.floatingToolLayout)
 
         developerButton = findViewById(R.id.developerButton)
         applicationButton = findViewById(R.id.applicationButton)
@@ -111,6 +115,7 @@ class SystemSettingsActivity : AppCompatActivity() {
         cameraButton = findViewById(R.id.cameraButton)
         galleryButton = findViewById(R.id.galleryButton)
         fileManagerButton = findViewById(R.id.fileManagerButton)
+        floatingToolButton = findViewById(R.id.floatingToolButton)
 
         try {
             val packageInfo = packageManager.getPackageInfo(packageName, 0)
@@ -120,6 +125,7 @@ class SystemSettingsActivity : AppCompatActivity() {
         }
 
         checkDebugMode()
+        checkDeviceAdminMode()
     }
 
     private fun initServices() {
@@ -178,6 +184,22 @@ class SystemSettingsActivity : AppCompatActivity() {
                 tryLaunchIntent(Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS))
             }
         }
+
+        floatingToolButton.setOnClickListener {
+            toggleFloatingTool()
+        }
+    }
+
+    private fun toggleFloatingTool() {
+        if (!Settings.canDrawOverlays(this)) {
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
+            startActivityForResult(intent, 1234)
+            Toast.makeText(this, "请授予悬浮窗权限后再次点击", Toast.LENGTH_LONG).show()
+        } else {
+            val serviceIntent = Intent(this, FloatingToolService::class.java)
+            startService(serviceIntent)
+            Toast.makeText(this, "悬浮窗已开启", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun tryLaunchIntent(intent: Intent): Boolean {
@@ -201,6 +223,14 @@ class SystemSettingsActivity : AppCompatActivity() {
             debugButtonsLayout.findViewById<View>(R.id.exitKioskButton).setOnClickListener {
                 handleExitKioskMode()
             }
+        }
+    }
+
+    private fun checkDeviceAdminMode() {
+        if (!KioskUtils.isDeviceAdmin(this)) {
+            floatingToolLayout.visibility = View.VISIBLE
+        } else {
+            floatingToolLayout.visibility = View.GONE
         }
     }
 

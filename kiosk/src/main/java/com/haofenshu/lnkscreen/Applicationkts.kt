@@ -38,7 +38,14 @@ fun Application.removeAppsFromWhitelist(packageNames: Collection<String>) {
 
 /**
  * 启动锁定任务模式（在Activity中调用）
- * 这个方法供Activity调用来实际启动LockTask
+ * 这个方法供Activity调用来实际启动LockTask。
+ * 
+ * 【完美 Kiosk 模式（单应用锁定）的三要素】
+ * 根据 Google 官方文档和企业级 MDM 方案，要实现完美的单应用锁定（防止应用切后台或被杀死），必须同时满足以下三点：
+ * 1. Device Owner 白名单：通过 DevicePolicyManager.setLockTaskPackages() 将应用包名设为白名单（当前代码中已包含）。
+ * 2. 清单文件声明：在 AndroidManifest.xml 的对应 Activity 中配置 `android:lockTaskMode="if_whitelisted"`。
+ * 3. 代码启动：在 Activity 处于前台时（如 onResume 中），主动调用 `Activity.startLockTask()`。
+ * 缺一不可。
  */
 fun Application.startLockTaskIfNeeded(context: Context, applicationId: String) {
     try {

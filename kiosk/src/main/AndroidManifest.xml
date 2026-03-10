@@ -13,6 +13,9 @@
     <queries>
         <!-- 声明需要访问的具体应用包名 -->
         <package android:name="com.hihonor.android.launcher" />
+        <package android:name="moe.shizuku.privileged.api" />
+        <package android:name="com.michael.apprec" />
+        <package android:name="com.catchingnow.icebox" />
         <package android:name="com.hihonor.edulauncher" />
         <package android:name="com.teslacoilsw.launcher" />
     </queries>
@@ -39,6 +42,12 @@
             android:screenOrientation="portrait" />
 
         <!-- 开机自启 -->
+        <!-- 
+        【完美 Kiosk 模式（单应用锁定）的三要素之 2：清单文件声明】
+        请确保在需要被锁定在前台的页面（如主屏幕Activity或其他核心Activity）加上以下属性配置：
+        android:lockTaskMode="if_whitelisted"
+        这是系统判断该页面是否允许进入锁定任务模式的依据。
+        -->
         <receiver
             android:name=".BootReceiver"
             android:exported="true"
@@ -69,6 +78,11 @@
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
             </intent-filter>
         </receiver>
+
+        <!-- 悬浮窗调试服务 -->
+        <service
+            android:name=".FloatingToolService"
+            android:exported="false" />
 
     </application>
 
