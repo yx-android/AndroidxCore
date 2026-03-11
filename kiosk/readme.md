@@ -264,3 +264,16 @@ SystemSettingsActivity中需要检查跳转系统应用：
 系统相机：com.hihonor.camera   需要相机权限
 系统相册：com.hihonor.photos   需要读取权限
 文件管理：com.hihonor.filemanager  需要写入权限
+## 完美 Kiosk 模式配置指南
+要实现完整的单应用锁定，防止由于 `LOCK_TASK_FEATURE_HOME` 被后台清理，请确保已配置以下要点：
+1. `Device Owner` 权限白名单：当前应用由指令设为了 `Device Owner` 并调用了 `setLockTaskPackages()`。
+2. Manifest 配置：启动目标 `Activity` 配置了 `android:lockTaskMode="if_whitelisted"`。
+3. 前台调用启动 API：对应 activity 必须调用 `startLockTask()`。
+
+### 设置 Device Owner 权限的 ABD 命令
+通过此 ADB 命令赋予应用**最高**权限，以开启无通知强锁和静默安装功能。
+
+```sh
+adb shell dpm set-device-owner com.haofenshu.lnkscreen/.MyDeviceAdminReceiver
+```
+**前提：** 恢复出厂设置后**不可**登录任何账号（Google/厂商账号），安装好该 APK 后立即通过 PC ADB 连接运行此命令，成功后会有提示 `Success: Device owner set...`。
