@@ -227,11 +227,11 @@ class SystemSettingsActivity : AppCompatActivity() {
     }
 
     private fun checkDeviceAdminMode() {
-        if (!KioskUtils.isDeviceAdmin(this)) {
-            floatingToolLayout.visibility = View.VISIBLE
-        } else {
+//        if (!KioskUtils.isDeviceAdmin(this)) {
+//            floatingToolLayout.visibility = View.VISIBLE
+//        } else {
             floatingToolLayout.visibility = View.GONE
-        }
+//        }
     }
 
     private fun updateNetworkStatus() {
