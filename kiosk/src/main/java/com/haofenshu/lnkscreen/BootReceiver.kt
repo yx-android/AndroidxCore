@@ -19,11 +19,12 @@ class BootReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
-        if (intent?.action != Intent.ACTION_BOOT_COMPLETED) {
+        val action = intent?.action
+        if (action != Intent.ACTION_BOOT_COMPLETED && action != Intent.ACTION_LOCKED_BOOT_COMPLETED) {
             return
         }
 
-        Log.d(TAG, "收到开机完成广播，准备启动应用")
+        Log.d(TAG, "收到开机完成广播 ($action)，准备启动应用")
 
         // 使用Handler延迟启动，确保系统服务就绪
         Handler(Looper.getMainLooper()).postDelayed({
@@ -62,22 +63,22 @@ class BootReceiver : BroadcastReceiver() {
                 } else {
                     Log.w("App", "增强Kiosk模式设置失败")
                 }
-
-                // 使用通用启动管理器启动应用
-                val success = KioskLaunchManager.launchApp(context)
-
-                if (success) {
-                    Log.d(TAG, "应用启动成功")
-                } else {
-                    Log.e(TAG, "应用启动失败")
-                }
-
                 Log.d(TAG, "Kiosk模式初始化完成")
             } else {
-                Log.w(TAG, "非设备所有者，跳过Kiosk模式初始化")
+                Log.w(TAG, "非设备所有者，跳过Kiosk模式初始化（但继续尝试拉起应用）")
+            }
+
+            // 无论是否是设备所有者（例如仅仅是设备管理者），都尝试拉起应用本身
+            // 注意：如果不是默认桌面，非设备所有者在后台拉起 Activity 可能需要悬浮窗权限 (SYSTEM_ALERT_WINDOW)
+            val success = KioskLaunchManager.launchApp(context)
+
+            if (success) {
+                Log.d(TAG, "应用启动成功")
+            } else {
+                Log.e(TAG, "应用启动失败")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Kiosk模式初始化失败", e)
+            Log.e(TAG, "Kiosk模式初始化或应用启动失败", e)
         }
     }
 }
