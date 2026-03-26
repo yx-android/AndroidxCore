@@ -39,7 +39,7 @@ fun Application.removeAppsFromWhitelist(packageNames: Collection<String>) {
 /**
  * 启动锁定任务模式（在Activity中调用）
  * 这个方法供Activity调用来实际启动LockTask。
- * 
+ *
  * 【完美 Kiosk 模式（单应用锁定）的三要素】
  * 根据 Google 官方文档和企业级 MDM 方案，要实现完美的单应用锁定（防止应用切后台或被杀死），必须同时满足以下三点：
  * 1. Device Owner 白名单：通过 DevicePolicyManager.setLockTaskPackages() 将应用包名设为白名单（当前代码中已包含）。
@@ -54,6 +54,7 @@ fun Application.startLockTaskIfNeeded(context: Context, applicationId: String) {
         val newPackages = KioskWhitelistManager.getInstance(context).getWhitelistAppsForKiosk()
         // 设置允许在LockTask模式中运行的应用白名单（仅当前应用）
         dpm.setLockTaskPackages(admin, newPackages.plus(applicationId))
+        setAppHidden(context)
         if (KioskUtils.isDeviceOwner(context)) {
             if (context is Activity) {
                 context.startLockTask()
@@ -66,6 +67,16 @@ fun Application.startLockTaskIfNeeded(context: Context, applicationId: String) {
     } catch (e: Exception) {
         Log.e("App", "启动LockTask失败", e)
         enableBasicLockTaskMode(context, applicationId)
+    }
+}
+
+/**
+ * 设置需要冻结的包名
+ */
+fun setAppHidden(context: Context) {
+    val packageNames = arrayOf("com.hihonor.baidu.browser")
+    packageNames.forEach { pkg ->
+        KioskUtils.setAppHidden(context, pkg, true)
     }
 }
 
