@@ -4,6 +4,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
@@ -82,6 +83,9 @@ object KioskUtils {
             devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
             devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
             devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
+            
+            // 7. 彻底禁用其他应用的安装权限（防误导安装/恶意安装），但您作为Device Owner可以用代码(PackageInstaller)静默安装
+            devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_APPS)
 
             // 4. 屏蔽特定设置
             restrictSpecificSettings(context, devicePolicyManager, adminComponent)
@@ -254,6 +258,47 @@ object KioskUtils {
         }
     }
 
+    /**
+     * 将指定的Activity设置为系统默认桌面（兜底方案：防止意外退出LockTask后回到系统自带桌面）
+     */
+    fun setDefaultLauncher(context: Context, componentName: ComponentName): Boolean {
+        return try {
+            if (!isDeviceOwner(context)) return false
+            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val adminComponent = getDeviceAdminComponent(context)
+            
+            val filter = IntentFilter(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                addCategory(Intent.CATEGORY_DEFAULT)
+            }
+            
+            devicePolicyManager.addPersistentPreferredActivity(adminComponent, filter, componentName)
+            Log.d(TAG, "已成功将应用强制设为默认桌面: ${componentName.className}")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "设置默认桌面失败: ${e.message}", e)
+            false
+        }
+    }
+
+    /**
+     * 清理默认桌面设置（退出首选项）
+     */
+    fun clearDefaultLauncher(context: Context): Boolean {
+        return try {
+            if (!isDeviceOwner(context)) return false
+            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val adminComponent = getDeviceAdminComponent(context)
+            
+            devicePolicyManager.clearPackagePersistentPreferredActivities(adminComponent, context.packageName)
+            Log.d(TAG, "已清理默认优先桌面设置")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "清理默认桌面失败: ${e.message}", e)
+            false
+        }
+    }
+
     fun disableKioskMode(context: Context): Boolean {
         return try {
             if (!isDeviceOwner(context)) return false
@@ -270,6 +315,7 @@ object KioskUtils {
             devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
             devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
             devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
+            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_APPS)
             devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_CREDENTIALS)
             devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_NETWORK_RESET)
             devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_BRIGHTNESS)
@@ -658,6 +704,30 @@ object KioskUtils {
     fun isSystemApp(appInfo: ApplicationInfo): Boolean {
         return (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 || 
                (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+    }
+
+    /**
+     * 绕过包可见性和 OEM (荣耀等) 拦截，通过调用底层 Shell 脱壳获取所有包名
+     * @param args 传递给 pm list packages 的参数，例如 "-s" (系统应用) 或 "-3" (第三方应用)
+     */
+    fun getPackagesByShell(args: String = ""): List<String> {
+        val packageList = mutableListOf<String>()
+        try {
+            val process = Runtime.getRuntime().exec("pm list packages $args")
+            val reader = java.io.BufferedReader(java.io.InputStreamReader(process.inputStream))
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                // 输出格式类似于 "package:com.tencent.mm"，清理冒号和前缀
+                val pkg = line?.substringAfter("package:")?.trim()
+                if (!pkg.isNullOrEmpty()) {
+                    packageList.add(pkg)
+                }
+            }
+            process.waitFor()
+        } catch (e: Exception) {
+            Log.e(TAG, "通过 Shell 获取包列表失败", e)
+        }
+        return packageList
     }
 
     /**
