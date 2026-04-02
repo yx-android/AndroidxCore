@@ -72,14 +72,12 @@ object KioskUtils {
 
             // 1. 设置白名单应用
             refreshLockTaskPackages(context)
-
             // 2. 配置锁定任务特性
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 val features = DevicePolicyManager.LOCK_TASK_FEATURE_SYSTEM_INFO or
                         DevicePolicyManager.LOCK_TASK_FEATURE_HOME
                 devicePolicyManager.setLockTaskFeatures(adminComponent, features)
             }
-
             // 3. 用户限制
             devicePolicyManager.addUserRestriction(
                 adminComponent,
