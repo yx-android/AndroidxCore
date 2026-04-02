@@ -89,13 +89,16 @@ fun setAppHidden(context: Context) {
         // 1. 获取系统的白名单
         val whitelist = KioskWhitelistManager.getInstance(context).getAllWhitelistPackages()
 
-        // 2. 利用底层 Shell 脱壳获取所有的第三方包与系统包
-        val thirdPartyApps = KioskUtils.getPackagesByShell("-3").toSet()
-        val systemApps = KioskUtils.getPackagesByShell("-s").toSet()
+        // 2. 利用底层 Shell 脱壳获取所有的第三方包与系统包（增加 -u 参数捕获隐藏应用，确保解冻逻辑覆盖到位）
+        val thirdPartyApps = KioskUtils.getPackagesByShell("-3 -u").toSet()
+        val systemApps = KioskUtils.getPackagesByShell("-s -u").toSet()
         val allPackages = thirdPartyApps + systemApps
-        
+
         Log.d("setAppHidden", "========== [底层包扫描日志] ==========")
-        Log.d("setAppHidden", "检测到 ${systemApps.size} 个系统包，${thirdPartyApps.size} 个第三方包")
+        Log.d(
+            "setAppHidden",
+            "检测到 ${systemApps.size} 个系统包，${thirdPartyApps.size} 个第三方包"
+        )
         systemApps.forEach { Log.d("setAppHidden", " |- [System] $it") }
         thirdPartyApps.forEach { Log.d("setAppHidden", " |- [3rdParty] $it") }
         Log.d("setAppHidden", "======================================")
@@ -107,37 +110,94 @@ fun setAppHidden(context: Context) {
         ).map { it.activityInfo.packageName }.toSet()
 
         // 4. 抓取被系统注册为浏览器的包（动态捕捉所有浏览器，取代曾经硬性配置的 com.hihonor.baidu.browser）
-        val browserIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("http://www.google.com"))
+        val browserIntent =
+            Intent(Intent.ACTION_VIEW, android.net.Uri.parse("http://www.google.com"))
         val dynamicBrowsers = pm.queryIntentActivities(
             browserIntent, PackageManager.MATCH_DEFAULT_ONLY or PackageManager.MATCH_ALL
         ).map { it.activityInfo.packageName }.toSet()
-        
+
         // 动态绞杀名单：完全由代码探测出的“所有桌面” + “所有浏览器”
         val destroyList = dynamicLaunchers + dynamicBrowsers
 
         // 5. 极高优先级的荣耀系统底层与特定组件的免死金牌名单（即使用户点出了这些，也绝不冻结以保稳定）
         val essentialHonorPackages = setOf(
-            // --- 您刚才特别指出的核心层和桌面 ---
-            "com.hihonor.motionservice", "com.hihonor.securityserver", "com.baidu.input_hihonor",
-            "com.hihonor.filemanager", "com.hihonor.camera", "com.hihonor.photos",
-            "com.hihonor.systemmanager", "com.hihonor.webview", "com.hihonor.android.wfdft",
-            "com.hihonor.android.magicx.media.audioengine", "com.hihonor.systemserver",
+            "com.hihonor.motionservice",
+            "com.hihonor.securityserver",
+            "com.baidu.input_hihonor",
+            "com.hihonor.filemanager",
+            "com.hihonor.camera",
+            "com.hihonor.photos",
+            "com.hihonor.webview",
+            "com.hihonor.android.wfdft",
+            "com.hihonor.android.magicx.media.audioengine",
+            "com.hihonor.systemserver",
+            "com.hihonor.systemmanager",
+            "com.hihonor.powergenie",
+            "com.hihonor.hiview",
+            "com.hihonor.secime",
+//            "com.hihonor.ddmp",
+            "com.hihonor.android.hnaps",
+            "com.hihonor.voiceengine",
+//            "com.hihonor.servicecenter",
+            "com.hihonor.hiviewtunnel",
+            "com.hihonor.securitypluginbase",
+//            "com.hihonor.phoneservice",
+//            "com.boeyu.appstore",
+            "com.hihonor.hnmediagraph",
+            "com.hihonor.mediadatacenter",
+            "com.hihonor.android.internal.app",
+//            "com.hihonor.magichome",
+            "com.hihonor.mediaprocessor",
+            "com.hihonor.keychain",
+            "com.hihonor.ouc",
+            "com.hihonor.devicegroupmanage",
+            "com.hihonor.deskclock",
+            "com.hihonor.airlink",
+            "com.hihonor.mcs.media.avfo",
+            "com.hihonor.medialibrary",
+            "com.hihonor.iaware",
+            "com.hihonor.systemappsupdater",
+//            "com.hihonor.android.FloatTasks",
+//            "com.hihonor.remotepassword",
+            "org.codeaurora.ims",
+            "com.qualcomm.qcrilmsgtunnel",
+//            "com.hihonor.devicemanager",
+            "com.hihonor.lbs",
+            "com.hihonor.synergy",
+            "com.hihonor.easygo",
+            "com.hihonor.coauthservice",
+            "com.hihonor.calendar",
+            "com.hihonor.behaviorauth",
+            "com.hihonor.mmitest",
+            "com.hihonor.msdp",
+            "com.hihonor.hnbluetoothp",
+            "com.hihonor.bluetooth",
+            "com.hihonor.nearby",
+            "com.hihonor.id",
+            "com.hihonor.dmsdp",
+            "com.hihonor.browserhomepage"
         )
 
         allPackages.forEach { pkgName ->
+            // 策略更新：先对单个包进行解冻，确保名单变化后应用能正确恢复
+            try {
+                KioskUtils.setAppHidden(context, pkgName, false)
+            } catch (e: Exception) {}
+
             // 防御机制一：绝对不碰自己和Android最底层核心
             if (pkgName == myPackageName || pkgName == "android") return@forEach
-
-            // 防御机制二：只要是 com.android. 开头，无脑绝对大赦放行！
-            if (pkgName.startsWith("com.android.")) return@forEach
-
-            // 防御机制三：特定的荣耀保底大赦名单，无视后面的猎杀判别，直接放行保护！
-            if (essentialHonorPackages.contains(pkgName)) return@forEach
+            //此处对系统应用再次进行筛选，Android底层应用外||特定的荣耀保底大赦名单，无视后面的猎杀判别，直接放行保护！
+            if (pkgName.startsWith("com.android.")) {
+                return@forEach
+            }
+            val isSystem =
+                systemApps.contains(pkgName) && essentialHonorPackages.contains(
+                    pkgName
+                )
 
             // 绝对白名单放行
             if (whitelist.contains(pkgName)) return@forEach
 
-            val isSystem = systemApps.contains(pkgName)
             val isDestructive = destroyList.contains(pkgName)
 
             // 【智能防御策略】:
@@ -152,14 +212,21 @@ fun setAppHidden(context: Context) {
                 "不可见/未知"
             }
 
-            Log.d("setAppHidden", "[冻结裁判] 名:$appName | 包:$pkgName | 系统包:$isSystem | 破坏项:$isDestructive | 冻结:$shouldHide")
+            Log.d(
+                "setAppHidden",
+                "[冻结裁判] 名:$appName | 包:$pkgName | 系统包:$isSystem | 破坏项:$isDestructive | 冻结:$shouldHide"
+            )
 
             if (shouldHide) {
                 // 执行隐藏隔离
-                KioskUtils.setAppHidden(context, pkgName, true)
+                try {
+                    KioskUtils.setAppHidden(context, pkgName, true)
+                } catch (e: Exception) {
+
+                }
             }
         }
-        
+
     } catch (e: Exception) {
         Log.e("App", "动态抓取并隐藏无关应用时出错", e)
     }

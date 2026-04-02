@@ -23,7 +23,7 @@ object KioskUtils {
     /**
      * 获取设备管理组件
      */
-    private fun getDeviceAdminComponent(context: Context): ComponentName {
+    fun getDeviceAdminComponent(context: Context): ComponentName {
         return ComponentName(context, MyDeviceAdminReceiver::class.java)
     }
 
@@ -45,7 +45,7 @@ object KioskUtils {
 
     /**
      * 设置增强的Kiosk模式
-     * 
+     *
      * 【完美 Kiosk 模式（单应用锁定）的三要素】
      * 完整的企业级单应用锁定方案，防止应用通过任何方式退到后台或被杀死，必须结合以下三点：
      * 1. Device Owner 白名单：通过此方法或 `DevicePolicyManager.setLockTaskPackages()` 将应用添加到锁定任务白名单。
@@ -54,7 +54,8 @@ object KioskUtils {
      */
     fun setupEnhancedKioskMode(context: Context): Boolean {
         return try {
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
 
             if (!devicePolicyManager.isDeviceOwnerApp(context.packageName)) {
@@ -80,12 +81,18 @@ object KioskUtils {
             }
 
             // 3. 用户限制
-            devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
+            devicePolicyManager.addUserRestriction(
+                adminComponent,
+                UserManager.DISALLOW_FACTORY_RESET
+            )
             devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
             devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
-            
+
             // 7. 彻底禁用其他应用的安装权限（防误导安装/恶意安装），但您作为Device Owner可以用代码(PackageInstaller)静默安装
-            devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_APPS)
+            devicePolicyManager.addUserRestriction(
+                adminComponent,
+                UserManager.DISALLOW_INSTALL_APPS
+            )
 
             // 4. 屏蔽特定设置
             restrictSpecificSettings(context, devicePolicyManager, adminComponent)
@@ -183,7 +190,8 @@ object KioskUtils {
 
     fun isDeviceOwner(context: Context): Boolean {
         return try {
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             devicePolicyManager.isDeviceOwnerApp(context.packageName)
         } catch (e: Exception) {
             false
@@ -195,7 +203,8 @@ object KioskUtils {
      */
     fun isDeviceAdmin(context: Context): Boolean {
         return try {
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             devicePolicyManager.isAdminActive(getDeviceAdminComponent(context))
         } catch (e: Exception) {
             false
@@ -207,7 +216,8 @@ object KioskUtils {
      */
     fun removeActiveAdmin(context: Context): Boolean {
         return try {
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
             if (devicePolicyManager.isAdminActive(adminComponent)) {
                 devicePolicyManager.removeActiveAdmin(adminComponent)
@@ -223,7 +233,8 @@ object KioskUtils {
 
     fun isKioskModeActive(context: Context): Boolean {
         return try {
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
             if (isDeviceOwner(context)) {
                 devicePolicyManager.getLockTaskPackages(adminComponent).isNotEmpty()
@@ -239,7 +250,8 @@ object KioskUtils {
         return try {
             if (!isDeviceOwner(context)) return false
 
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
             val whitelistManager = KioskWhitelistManager.getInstance(context)
 
@@ -264,15 +276,20 @@ object KioskUtils {
     fun setDefaultLauncher(context: Context, componentName: ComponentName): Boolean {
         return try {
             if (!isDeviceOwner(context)) return false
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
-            
+
             val filter = IntentFilter(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_HOME)
                 addCategory(Intent.CATEGORY_DEFAULT)
             }
-            
-            devicePolicyManager.addPersistentPreferredActivity(adminComponent, filter, componentName)
+
+            devicePolicyManager.addPersistentPreferredActivity(
+                adminComponent,
+                filter,
+                componentName
+            )
             Log.d(TAG, "已成功将应用强制设为默认桌面: ${componentName.className}")
             true
         } catch (e: Exception) {
@@ -287,10 +304,14 @@ object KioskUtils {
     fun clearDefaultLauncher(context: Context): Boolean {
         return try {
             if (!isDeviceOwner(context)) return false
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
-            
-            devicePolicyManager.clearPackagePersistentPreferredActivities(adminComponent, context.packageName)
+
+            devicePolicyManager.clearPackagePersistentPreferredActivities(
+                adminComponent,
+                context.packageName
+            )
             Log.d(TAG, "已清理默认优先桌面设置")
             true
         } catch (e: Exception) {
@@ -303,27 +324,27 @@ object KioskUtils {
         return try {
             if (!isDeviceOwner(context)) return false
 
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+//            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
+//
+//            devicePolicyManager.setLockTaskPackages(adminComponent, arrayOf())
+//
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+//                devicePolicyManager.setLockTaskFeatures(adminComponent, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
+//            }
 
-            devicePolicyManager.setLockTaskPackages(adminComponent, arrayOf())
+//            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
+//            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
+//            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
+//            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_APPS)
+//            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_CREDENTIALS)
+//            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_NETWORK_RESET)
+//            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_BRIGHTNESS)
+//            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                devicePolicyManager.setLockTaskFeatures(adminComponent, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
-            }
-
-            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
-            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
-            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
-            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_APPS)
-            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_CREDENTIALS)
-            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_NETWORK_RESET)
-            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_BRIGHTNESS)
-            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)
-
-            devicePolicyManager.setPermittedAccessibilityServices(adminComponent, null)
-            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_DEBUGGING_FEATURES)
-            devicePolicyManager.setKeyguardDisabled(adminComponent, false)
+//            devicePolicyManager.setPermittedAccessibilityServices(adminComponent, null)
+//            devicePolicyManager.clearUserRestriction(adminComponent, UserManager.DISALLOW_DEBUGGING_FEATURES)
+//            devicePolicyManager.setKeyguardDisabled(adminComponent, false)
 
             Log.d(TAG, "Kiosk模式已禁用")
             true
@@ -339,7 +360,8 @@ object KioskUtils {
 
         if (isDeviceOwner(context)) {
             try {
-                val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+                val devicePolicyManager =
+                    context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
                 val adminComponent = getDeviceAdminComponent(context)
                 val packages = devicePolicyManager.getLockTaskPackages(adminComponent)
                 sb.append("- 白名单应用数: ${packages.size}\n")
@@ -385,7 +407,8 @@ object KioskUtils {
 
     fun isNetworkAvailable(context: Context): Boolean {
         return try {
-            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val connectivityManager =
+                context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val network = connectivityManager.activeNetwork ?: return false
             val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
             capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
@@ -396,14 +419,16 @@ object KioskUtils {
 
     fun getNetworkStatusInfo(context: Context): String {
         return try {
-            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val connectivityManager =
+                context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val network = connectivityManager.activeNetwork
             val capabilities = connectivityManager.getNetworkCapabilities(network)
             val sb = StringBuilder("网络状态信息:\n")
             if (network == null || capabilities == null) {
                 sb.append("- 状态: 无网络连接\n")
             } else {
-                val isConnected = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                val isConnected =
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 sb.append("- 状态: ${if (isConnected) "已连接" else "未连接"}\n")
                 val type = when {
                     capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "WiFi"
@@ -425,14 +450,33 @@ object KioskUtils {
         adminComponent: ComponentName
     ) {
         try {
-            devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
-            devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_NETWORK_RESET)
-            devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)
+            devicePolicyManager.addUserRestriction(
+                adminComponent,
+                UserManager.DISALLOW_FACTORY_RESET
+            )
+            devicePolicyManager.addUserRestriction(
+                adminComponent,
+                UserManager.DISALLOW_NETWORK_RESET
+            )
+            devicePolicyManager.addUserRestriction(
+                adminComponent,
+                UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS
+            )
 
             // 屏蔽分屏/多窗口全局设置
             safeSetGlobalSetting(devicePolicyManager, adminComponent, "multi_window_enabled", "0")
-            safeSetGlobalSetting(devicePolicyManager, adminComponent, "force_resizable_activities", "0")
-            safeSetGlobalSetting(devicePolicyManager, adminComponent, "enable_freeform_support", "0")
+            safeSetGlobalSetting(
+                devicePolicyManager,
+                adminComponent,
+                "force_resizable_activities",
+                "0"
+            )
+            safeSetGlobalSetting(
+                devicePolicyManager,
+                adminComponent,
+                "enable_freeform_support",
+                "0"
+            )
 
             blockHonorResetSettings(context, devicePolicyManager, adminComponent)
             restrictSmartWindowFeatures(context, devicePolicyManager, adminComponent)
@@ -444,9 +488,11 @@ object KioskUtils {
     fun isSettingRestricted(context: Context): Boolean {
         return try {
             if (!isDeviceOwner(context)) return false
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
-            devicePolicyManager.getUserRestrictions(adminComponent).getBoolean(UserManager.DISALLOW_CONFIG_CREDENTIALS, false)
+            devicePolicyManager.getUserRestrictions(adminComponent)
+                .getBoolean(UserManager.DISALLOW_CONFIG_CREDENTIALS, false)
         } catch (e: Exception) {
             false
         }
@@ -455,9 +501,14 @@ object KioskUtils {
     fun enableAppUpdate(context: Context, packageName: String? = null): Boolean {
         return try {
             if (!isDeviceOwner(context)) return false
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
-            devicePolicyManager.setUninstallBlocked(adminComponent, packageName ?: context.packageName, false)
+            devicePolicyManager.setUninstallBlocked(
+                adminComponent,
+                packageName ?: context.packageName,
+                false
+            )
             true
         } catch (e: Exception) {
             false
@@ -467,10 +518,15 @@ object KioskUtils {
     fun canAppBeUpdated(context: Context, packageName: String? = null): Boolean {
         return try {
             if (!isDeviceOwner(context)) return true
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
-            val isBlocked = devicePolicyManager.isUninstallBlocked(adminComponent, packageName ?: context.packageName)
-            val hasInstallRestriction = devicePolicyManager.getUserRestrictions(adminComponent).getBoolean(UserManager.DISALLOW_INSTALL_APPS, false)
+            val isBlocked = devicePolicyManager.isUninstallBlocked(
+                adminComponent,
+                packageName ?: context.packageName
+            )
+            val hasInstallRestriction = devicePolicyManager.getUserRestrictions(adminComponent)
+                .getBoolean(UserManager.DISALLOW_INSTALL_APPS, false)
             !isBlocked && !hasInstallRestriction
         } catch (e: Exception) {
             true
@@ -494,17 +550,28 @@ object KioskUtils {
                 blockedPatterns.none { pattern -> service.contains(pattern, ignoreCase = true) }
             }
             devicePolicyManager.setPermittedAccessibilityServices(adminComponent, permittedServices)
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+        }
     }
 
     fun isSmartWindowBlocked(context: Context): Boolean {
         return try {
             if (!isDeviceOwner(context)) return false
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
-            val permittedServices = devicePolicyManager.getPermittedAccessibilityServices(adminComponent) ?: return false
+            val permittedServices =
+                devicePolicyManager.getPermittedAccessibilityServices(adminComponent)
+                    ?: return false
             val blockedPatterns = listOf("multiwindow", "smartwindow", "split", "floating", "float")
-            !permittedServices.any { service -> blockedPatterns.any { pattern -> service.contains(pattern, ignoreCase = true) } }
+            !permittedServices.any { service ->
+                blockedPatterns.any { pattern ->
+                    service.contains(
+                        pattern,
+                        ignoreCase = true
+                    )
+                }
+            }
         } catch (e: Exception) {
             false
         }
@@ -525,7 +592,8 @@ object KioskUtils {
     fun rebootDevice(context: Context): Boolean {
         return try {
             if (isDeviceOwner(context)) {
-                val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+                val devicePolicyManager =
+                    context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
                 devicePolicyManager.reboot(getDeviceAdminComponent(context))
                 true
             } else {
@@ -548,24 +616,43 @@ object KioskUtils {
                 "com.hihonor.desktop.explorer", "com.hihonor.android.projectmenu"
             )
             blockedPackages.forEach { pkg ->
-                try { devicePolicyManager.setApplicationHidden(adminComponent, pkg, true) } catch (e: Exception) {}
+                try {
+                    devicePolicyManager.setApplicationHidden(adminComponent, pkg, true)
+                } catch (e: Exception) {
+                }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 devicePolicyManager.addUserRestriction(adminComponent, "no_side_gestures")
             }
             safeSetGlobalSetting(devicePolicyManager, adminComponent, "edge_gestures_enabled", "0")
             safeSetGlobalSetting(devicePolicyManager, adminComponent, "honor_dock_bar_enabled", "0")
-            safeSetGlobalSetting(devicePolicyManager, adminComponent, "multi_window_menu_enabled", "0")
-            safeSetGlobalSetting(devicePolicyManager, adminComponent, "is_short_side_gesture_enabled", "0")
-        } catch (e: Exception) {}
+            safeSetGlobalSetting(
+                devicePolicyManager,
+                adminComponent,
+                "multi_window_menu_enabled",
+                "0"
+            )
+            safeSetGlobalSetting(
+                devicePolicyManager,
+                adminComponent,
+                "is_short_side_gesture_enabled",
+                "0"
+            )
+        } catch (e: Exception) {
+        }
     }
 
     fun isHonorDockBarBlocked(context: Context): Boolean {
         return try {
             if (!isDeviceOwner(context)) return false
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
-            val dockPackages = listOf("com.huawei.hwdockbar", "com.hihonor.hndockbar", "com.hihonor.desktop.explorer")
+            val dockPackages = listOf(
+                "com.huawei.hwdockbar",
+                "com.hihonor.hndockbar",
+                "com.hihonor.desktop.explorer"
+            )
             dockPackages.any { pkg -> devicePolicyManager.isApplicationHidden(adminComponent, pkg) }
         } catch (e: Exception) {
             false
@@ -585,29 +672,65 @@ object KioskUtils {
                 putBoolean("no_honor_reset", true)
                 putBoolean("no_subsettings_reset", true)
             }
-            devicePolicyManager.setApplicationRestrictions(adminComponent, "com.android.settings", bundle)
-            
+            devicePolicyManager.setApplicationRestrictions(
+                adminComponent,
+                "com.android.settings",
+                bundle
+            )
+
             // 使用 safeSetGlobalSetting 确保单个失败不影响后续
-            safeSetGlobalSetting(devicePolicyManager, adminComponent, Settings.Global.DEVICE_PROVISIONED, "1")
-            safeSetGlobalSetting(devicePolicyManager, adminComponent, "honor_factory_reset_enabled", "0")
-            safeSetGlobalSetting(devicePolicyManager, adminComponent, "honor_network_reset_enabled", "0")
-            safeSetGlobalSetting(devicePolicyManager, adminComponent, "honor_reset_settings_enabled", "0")
-            
-            devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
-            devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_NETWORK_RESET)
-        } catch (e: Exception) {}
+            safeSetGlobalSetting(
+                devicePolicyManager,
+                adminComponent,
+                Settings.Global.DEVICE_PROVISIONED,
+                "1"
+            )
+            safeSetGlobalSetting(
+                devicePolicyManager,
+                adminComponent,
+                "honor_factory_reset_enabled",
+                "0"
+            )
+            safeSetGlobalSetting(
+                devicePolicyManager,
+                adminComponent,
+                "honor_network_reset_enabled",
+                "0"
+            )
+            safeSetGlobalSetting(
+                devicePolicyManager,
+                adminComponent,
+                "honor_reset_settings_enabled",
+                "0"
+            )
+
+            devicePolicyManager.addUserRestriction(
+                adminComponent,
+                UserManager.DISALLOW_FACTORY_RESET
+            )
+            devicePolicyManager.addUserRestriction(
+                adminComponent,
+                UserManager.DISALLOW_NETWORK_RESET
+            )
+        } catch (e: Exception) {
+        }
     }
 
     fun isHonorResetSettingsBlocked(context: Context): Boolean {
         return try {
             if (!isDeviceOwner(context)) return false
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val adminComponent = getDeviceAdminComponent(context)
             val restrictions = devicePolicyManager.getUserRestrictions(adminComponent)
-            val hasUserRestrictions = restrictions.getBoolean(UserManager.DISALLOW_FACTORY_RESET, false) ||
-                    restrictions.getBoolean(UserManager.DISALLOW_NETWORK_RESET, false)
+            val hasUserRestrictions =
+                restrictions.getBoolean(UserManager.DISALLOW_FACTORY_RESET, false) ||
+                        restrictions.getBoolean(UserManager.DISALLOW_NETWORK_RESET, false)
 
-            val settingsRestrictions = devicePolicyManager.getApplicationRestrictions(adminComponent, "com.android.settings")
+            val settingsRestrictions = devicePolicyManager.getApplicationRestrictions(
+                adminComponent,
+                "com.android.settings"
+            )
             val appRestrictionsSet = settingsRestrictions.getBoolean("no_factory_reset", false) ||
                     settingsRestrictions.getBoolean("no_honor_reset", false)
             hasUserRestrictions || appRestrictionsSet
@@ -618,8 +741,18 @@ object KioskUtils {
 
     private fun getInstalledAccessibilityServices(context: Context): List<String> {
         return try {
-            context.packageManager.queryIntentServices(Intent("android.accessibilityservice.AccessibilityService"), PackageManager.GET_META_DATA)
-                .map { it.serviceInfo.let { info -> ComponentName(info.packageName, info.name).flattenToString() } }
+            context.packageManager.queryIntentServices(
+                Intent("android.accessibilityservice.AccessibilityService"),
+                PackageManager.GET_META_DATA
+            )
+                .map {
+                    it.serviceInfo.let { info ->
+                        ComponentName(
+                            info.packageName,
+                            info.name
+                        ).flattenToString()
+                    }
+                }
         } catch (e: Exception) {
             emptyList()
         }
@@ -628,8 +761,12 @@ object KioskUtils {
     fun clearBrightnessRestriction(context: Context): Boolean {
         return try {
             if (!isDeviceOwner(context)) return false
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-            devicePolicyManager.clearUserRestriction(getDeviceAdminComponent(context), UserManager.DISALLOW_CONFIG_BRIGHTNESS)
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            devicePolicyManager.clearUserRestriction(
+                getDeviceAdminComponent(context),
+                UserManager.DISALLOW_CONFIG_BRIGHTNESS
+            )
             true
         } catch (e: Exception) {
             false
@@ -639,8 +776,10 @@ object KioskUtils {
     fun isBrightnessRestricted(context: Context): Boolean {
         return try {
             if (!isDeviceOwner(context)) return false
-            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-            devicePolicyManager.getUserRestrictions(getDeviceAdminComponent(context)).getBoolean(UserManager.DISALLOW_CONFIG_BRIGHTNESS, false)
+            val devicePolicyManager =
+                context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            devicePolicyManager.getUserRestrictions(getDeviceAdminComponent(context))
+                .getBoolean(UserManager.DISALLOW_CONFIG_BRIGHTNESS, false)
         } catch (e: Exception) {
             false
         }
@@ -671,7 +810,10 @@ object KioskUtils {
             val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val admin = getDeviceAdminComponent(context)
             packageNames.forEach { pkg ->
-                try { dpm.setApplicationHidden(admin, pkg, hidden) } catch (e: Exception) {}
+                try {
+                    dpm.setApplicationHidden(admin, pkg, hidden)
+                } catch (e: Exception) {
+                }
             }
             true
         } catch (e: Exception) {
@@ -702,8 +844,8 @@ object KioskUtils {
      * 判断是否为系统应用
      */
     fun isSystemApp(appInfo: ApplicationInfo): Boolean {
-        return (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 || 
-               (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+        return (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
+                (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
     }
 
     /**
@@ -745,20 +887,25 @@ object KioskUtils {
             val whitelist = KioskWhitelistManager.getInstance(context).getAllWhitelistPackages()
 
             val pm = context.packageManager
-            val packages = pm.getInstalledPackages(0)
+            // 使用 MATCH_UNINSTALLED_PACKAGES 标志，确保能够探测到当前已被隐藏（相当于对该用户卸载）的应用
+            val packages = pm.getInstalledPackages(PackageManager.MATCH_UNINSTALLED_PACKAGES)
 
             packages.forEach { pkgInfo ->
                 val pkgName = pkgInfo.packageName
                 if (hidden) {
                     if (!whitelist.contains(pkgName) && pkgName != context.packageName) {
-                        try { dpm.setApplicationHidden(admin, pkgName, true) } catch (e: Exception) {}
+                        try {
+                            dpm.setApplicationHidden(admin, pkgName, true)
+                        } catch (e: Exception) {
+                        }
                     }
                 } else {
                     try {
                         if (dpm.isApplicationHidden(admin, pkgName)) {
                             dpm.setApplicationHidden(admin, pkgName, false)
                         }
-                    } catch (e: Exception) {}
+                    } catch (e: Exception) {
+                    }
                 }
             }
             true
