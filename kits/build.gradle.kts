@@ -1,26 +1,18 @@
-import java.text.SimpleDateFormat
-import java.util.Calendar
-
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
 }
 
-// 1. 定义版本号
-fun getBuildTime(): String {
-    val date = Calendar.getInstance().time
-    val sdf = SimpleDateFormat("yyyyMMddHHmmss")
-    return sdf.format(date)
-}
 android {
     namespace = "com.yunxiao.kits"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
-        minSdk = 24
+        minSdk = 26
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+        testApplicationId = ".dubg"
     }
 
     buildTypes {
@@ -57,16 +49,6 @@ android {
             res.srcDirs("src/release/res")
             assets.srcDirs("src/release/assets")
             java.srcDirs("src/release/java")
-        }
-    }
-
-    libraryVariants.all {
-        outputs.forEach { output ->
-            val buildType = this.buildType.name
-            val fileName = "${project.name}-${buildType}-${getBuildTime()}.aar"
-            output.outputFile.takeIf { it.isFile && it.exists() }?.run {
-                renameTo(File(output.outputFile.parentFile, fileName))
-            }
         }
     }
 }
